@@ -1,0 +1,20 @@
+[package]
+name = "ServerInformationAPI"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.20.1", features = ["rt-multi-thread", "macros"] }
+notify = "4.0.17"
+serenity = { version = "0.11.4", default-features = false, features = ["client", "gateway", "rustls_backend", "model", "cache"] }
+serde = { version = "1.0.140", features = ["derive"] }
+serde_json = "1.0.82"
+lazy_static = "1.4.0"
+anyhow = "1.0.58"
+mc-server-ping = { git = "https://github.com/notseanray/mc-server-ping.git" }
+actix-web = "4.0.1"
+
+[profile.release]
+panic = "abort"
