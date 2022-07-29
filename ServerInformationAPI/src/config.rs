@@ -53,9 +53,9 @@ impl Server {
 
 #[derive(Default, Deserialize, Serialize)]
 pub(crate) struct ConfigServer {
-    host: String,
-    port: u16,
-    display_name: String,
+    pub host: String,
+    pub port: u16,
+    pub display_name: String,
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -65,6 +65,7 @@ pub(crate) struct Config {
     pub guild_id: u64,
     pub member_role_id: u64,
     pub status: Option<Vec<ConfigServer>>,
+    pub showcase_channel_id: u64,
 }
 
 impl Config {

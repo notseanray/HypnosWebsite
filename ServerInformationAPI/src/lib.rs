@@ -8,6 +8,7 @@ use actix_web::{
 use anyhow::Result;
 use config::*;
 use lazy_static::lazy_static;
+use mc_server_ping::ServerStatus;
 use notify::{watcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use serenity::{
@@ -15,12 +16,12 @@ use serenity::{
     client::Context,
     client::EventHandler,
     http::CacheHttp,
-    model::{event::GatewayEvent, gateway::Ready},
+    model::{gateway::Ready, id::ChannelId},
     prelude::GatewayIntents,
     Client,
 };
 use std::sync::Arc;
-use std::{sync::atomic::AtomicBool, time::Duration};
+use std::time::Duration;
 use tokio::{sync::RwLock, time::sleep};
 
 lazy_static! {
@@ -32,6 +33,7 @@ lazy_static! {
             std::process::exit(1);
         }
     }));
+    static ref IMAGES: Arc<RwLock<Vec<String>>> = Arc::new(RwLock::new(vec![]));
     static ref MEMBERS: Arc<RwLock<Vec<Member>>> = Arc::new(RwLock::new(vec![]));
     static ref SERVERS: Arc<RwLock<Vec<Server>>> = Arc::new(RwLock::new(vec![]));
 }
@@ -60,7 +62,14 @@ async fn discord_members(_: HttpRequest) -> actix_web::Result<HttpResponse> {
 async fn image_request(_: HttpRequest) -> actix_web::Result<HttpResponse> {
     Ok(HttpResponse::build(StatusCode::OK)
         .content_type(ContentType::plaintext())
-        .body("test".to_string()))
+        .body(serde_json::to_string(&*IMAGES.read().await).unwrap_or_default()))
+}
+
+#[get("/test")]
+async fn test(_: HttpRequest) -> actix_web::Result<HttpResponse> {
+    Ok(HttpResponse::build(StatusCode::OK)
+        .content_type(ContentType::plaintext())
+        .body("yup".to_owned()))
 }
 
 struct Handler;
@@ -74,6 +83,19 @@ impl EventHandler for Handler {
             let member_role = CONFIG.read().await.member_role_id;
             let guild = ctx.cache.guild(CONFIG.read().await.guild_id);
             if let Some(v) = guild {
+                let showcase_id = CONFIG.read().await.showcase_channel_id;
+                let id = ChannelId(showcase_id);
+                let get_messages = id.messages(&ctx.http, |r| r.limit(100)).await;
+                if let Ok(g) = get_messages {
+                    let mut urls = Vec::with_capacity(IMAGES.read().await.len());
+                    IMAGES.write().await.clear();
+                    for message in &g {
+                        for attachment in &message.attachments {
+                            urls.push(attachment.url.to_owned());
+                        }
+                    }
+                    *IMAGES.write().await = urls;
+                };
                 let members = match v.members(ctx.http(), None, None).await {
                     Ok(v) => v.into_iter().filter(|m| {
                         m.roles(ctx.cache().unwrap())
@@ -120,11 +142,11 @@ pub async fn run() -> Result<()> {
             if let Some(v) = servers {
                 let mut new_list = Vec::with_capacity(v.len());
                 for server in v {
-                    SERVERS.write().await.clear();
-                    if let Ok(v) = Server::query(server) {
-                        new_list.push(v);
-                    }
+                    let status = ServerStatus::new(v.host, port, timeout, max_size);
+                    new_list.push(status.to_json().unwrap());
+                    println!("{:?}", "h");
                 }
+                SERVERS.write().await.clear();
             }
             sleep(Duration::from_secs(30)).await;
         }
@@ -141,8 +163,11 @@ pub async fn run() -> Result<()> {
         }
     });
 
-    HttpServer::new(|| App::new().service(server_status))
-        .bind(("0.0.0.0", CONFIG.read().await.port))
+    let port = CONFIG.read().await.port;
+
+    println!("started webserver on 0.0.0.0:{port}");
+    HttpServer::new(|| App::new().service(server_status).service(test).service(discord_members).service(image_request))
+        .bind(("127.0.0.1", port))
         .expect("unable to bind to port")
         .workers(1)
         .run()
