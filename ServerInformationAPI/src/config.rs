@@ -1,13 +1,15 @@
-use anyhow::anyhow;
 use anyhow::Result;
 use std::time::Duration;
-use std::{error::Error, fs, io::Write, path::PathBuf};
+use std::{fs, io::Write, path::PathBuf};
 
 use mc_server_ping::ServerStatus;
-use mc_server_ping::StatusResponse;
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Deserialize, Serialize)]
+const REQUEST_TIMEOUT: u64 = 5000;
+// 10 MB
+const MAX_REQUEST_SIZE: u32 = 1048576 * 10;
+
+#[derive(Default, Deserialize, Serialize, Debug)]
 pub(crate) struct Server {
     display_name: String,
     online: bool,
@@ -21,8 +23,8 @@ impl Server {
         let mut query = ServerStatus::new(
             &server.host,
             server.port,
-            Some(Duration::from_secs(2)),
-            Some(5000000),
+            Some(Duration::from_millis(REQUEST_TIMEOUT)),
+            Some(MAX_REQUEST_SIZE),
         );
         // if I used proc macros I could rewrite this to be a macro, but oh well
         match query.query() {
@@ -41,6 +43,7 @@ impl Server {
         })
     }
 
+    #[inline]
     fn offline(server: &ConfigServer) -> Self {
         Self {
             display_name: server.display_name.to_owned(),
@@ -51,14 +54,14 @@ impl Server {
     }
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Default, Deserialize, Serialize, Debug)]
 pub(crate) struct ConfigServer {
     pub host: String,
     pub port: u16,
     pub display_name: String,
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Default, Deserialize, Serialize, Debug)]
 pub(crate) struct Config {
     pub token: String,
     pub port: u16,

@@ -8,16 +8,15 @@ use actix_web::{
 use anyhow::Result;
 use config::*;
 use lazy_static::lazy_static;
-use mc_server_ping::ServerStatus;
 use notify::{watcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use serenity::{
     async_trait,
     client::Context,
     client::EventHandler,
+    futures::StreamExt,
     http::CacheHttp,
-    model::{gateway::Ready, id::ChannelId},
-    prelude::GatewayIntents,
+    model::{gateway::Ready, guild::Member as SerenityMember, id::ChannelId, prelude::GuildId},
     Client,
 };
 use std::sync::Arc;
@@ -33,9 +32,9 @@ lazy_static! {
             std::process::exit(1);
         }
     }));
-    static ref IMAGES: Arc<RwLock<Vec<String>>> = Arc::new(RwLock::new(vec![]));
-    static ref MEMBERS: Arc<RwLock<Vec<Member>>> = Arc::new(RwLock::new(vec![]));
-    static ref SERVERS: Arc<RwLock<Vec<Server>>> = Arc::new(RwLock::new(vec![]));
+    static ref IMAGES: Arc<RwLock<Vec<String>>> = Arc::new(RwLock::new(Vec::new()));
+    static ref MEMBERS: Arc<RwLock<Vec<Member>>> = Arc::new(RwLock::new(Vec::new()));
+    static ref SERVERS: Arc<RwLock<Vec<Server>>> = Arc::new(RwLock::new(Vec::new()));
 }
 
 #[derive(Default, Deserialize, Serialize)]
@@ -54,22 +53,15 @@ async fn server_status(_: HttpRequest) -> actix_web::Result<HttpResponse> {
 #[get("/discord_members")]
 async fn discord_members(_: HttpRequest) -> actix_web::Result<HttpResponse> {
     Ok(HttpResponse::build(StatusCode::OK)
-        .content_type(ContentType::plaintext())
+        .content_type(ContentType::json())
         .body(serde_json::to_string(&*MEMBERS.read().await).unwrap_or_default()))
 }
 
 #[get("/image_request")]
 async fn image_request(_: HttpRequest) -> actix_web::Result<HttpResponse> {
     Ok(HttpResponse::build(StatusCode::OK)
-        .content_type(ContentType::plaintext())
+        .content_type(ContentType::json())
         .body(serde_json::to_string(&*IMAGES.read().await).unwrap_or_default()))
-}
-
-#[get("/test")]
-async fn test(_: HttpRequest) -> actix_web::Result<HttpResponse> {
-    Ok(HttpResponse::build(StatusCode::OK)
-        .content_type(ContentType::plaintext())
-        .body("yup".to_owned()))
 }
 
 struct Handler;
@@ -79,40 +71,48 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
         loop {
-            sleep(Duration::from_secs(30)).await;
+            sleep(Duration::from_secs(300)).await;
             let member_role = CONFIG.read().await.member_role_id;
-            let guild = ctx.cache.guild(CONFIG.read().await.guild_id);
-            if let Some(v) = guild {
-                let showcase_id = CONFIG.read().await.showcase_channel_id;
-                let id = ChannelId(showcase_id);
-                let get_messages = id.messages(&ctx.http, |r| r.limit(100)).await;
-                if let Ok(g) = get_messages {
-                    let mut urls = Vec::with_capacity(IMAGES.read().await.len());
-                    IMAGES.write().await.clear();
-                    for message in &g {
-                        for attachment in &message.attachments {
-                            urls.push(attachment.url.to_owned());
+            let id = ChannelId(CONFIG.read().await.showcase_channel_id);
+            let get_messages = id.messages(&ctx.http, |r| r.limit(100)).await;
+            if let Ok(g) = get_messages {
+                let mut urls = Vec::with_capacity(IMAGES.read().await.len());
+                IMAGES.write().await.clear();
+                for message in &g {
+                    for attachment in &message.attachments {
+                        urls.push(attachment.url.to_owned());
+                    }
+                }
+                *IMAGES.write().await = urls;
+            };
+            let guild = GuildId::from(CONFIG.read().await.guild_id);
+            let mut members = guild.members_iter(&ctx).boxed();
+            // 50 is a decent guess to roughly how many members there are + trial members + bots
+            let mut new_members = Vec::with_capacity(50);
+            while let Some(m) = members.next().await {
+                if let Ok(member) = m {
+                    if let Some(r) = member.roles(&ctx.cache().unwrap()).await {
+                        if !member.user.bot && r.into_iter().any(|m| m.id.0 == member_role) {
+                            new_members.push(member);
                         }
                     }
-                    *IMAGES.write().await = urls;
-                };
-                let members = match v.members(ctx.http(), None, None).await {
-                    Ok(v) => v.into_iter().filter(|m| {
-                        m.roles(ctx.cache().unwrap())
-                            .unwrap()
-                            .into_iter()
-                            .any(|x| x.id.0 == member_role && !m.user.bot)
-                    }),
-                    _ => continue,
-                };
-                let mut updated_members: Vec<Member> =
-                    Vec::with_capacity(MEMBERS.read().await.len());
-                MEMBERS.write().await.clear();
-                for member in members {
-                    updated_members.push(Member { avatar: member.avatar_url().unwrap_or_else(|| "https://media.discordapp.net/stickers/860204185818365962.webp?size=4096".to_owned()), name: member.user.name })
                 }
-                *MEMBERS.write().await = updated_members;
             }
+            MEMBERS.write().await.clear();
+            *MEMBERS.write().await = new_members.into_iter().map(|m| m.into()).collect();
+        }
+    }
+}
+
+impl From<SerenityMember> for Member {
+    #[inline]
+    fn from(m: SerenityMember) -> Self {
+        Self {
+            avatar: m.avatar_url().unwrap_or_else(||
+                // troll face as default
+                "https://media.discordapp.net/stickers/860204185818365962.webp?size=4096"
+                .to_owned()),
+            name: m.user.name,
         }
     }
 }
@@ -128,6 +128,8 @@ pub async fn run() -> Result<()> {
             // happens then reload the config and continue
             while let Ok(notify::DebouncedEvent::Write(_)) = rx.recv() {}
             if let Ok(v) = Config::load() {
+                println!("reloaded");
+                println!("{:?}", v);
                 // pretty much the only use of anyhow right here, if Box<dyn Error> was Send then I
                 // wouldn't use the library
                 *CONFIG.write().await = v;
@@ -142,19 +144,21 @@ pub async fn run() -> Result<()> {
             if let Some(v) = servers {
                 let mut new_list = Vec::with_capacity(v.len());
                 for server in v {
-                    let status = ServerStatus::new(v.host, port, timeout, max_size);
-                    new_list.push(status.to_json().unwrap());
-                    println!("{:?}", "h");
+                    let status = match Server::query(server) {
+                        Ok(v) => v,
+                        _ => continue,
+                    };
+                    new_list.push(status);
                 }
                 SERVERS.write().await.clear();
+                *SERVERS.write().await = new_list;
             }
             sleep(Duration::from_secs(30)).await;
         }
     });
 
     tokio::spawn(async move {
-        let intents = GatewayIntents::GUILD_MEMBERS | GatewayIntents::GUILD_BANS;
-        let mut client = Client::builder(&CONFIG.read().await.token, intents)
+        let mut client = Client::builder(&CONFIG.read().await.token)
             .event_handler(Handler)
             .await
             .unwrap();
@@ -166,11 +170,16 @@ pub async fn run() -> Result<()> {
     let port = CONFIG.read().await.port;
 
     println!("started webserver on 0.0.0.0:{port}");
-    HttpServer::new(|| App::new().service(server_status).service(test).service(discord_members).service(image_request))
-        .bind(("127.0.0.1", port))
-        .expect("unable to bind to port")
-        .workers(1)
-        .run()
-        .await?;
+    HttpServer::new(|| {
+        App::new()
+            .service(server_status)
+            .service(discord_members)
+            .service(image_request)
+    })
+    .bind(("0.0.0.0", port))
+    .expect("unable to bind to port")
+    .workers(1)
+    .run()
+    .await?;
     Ok(())
 }

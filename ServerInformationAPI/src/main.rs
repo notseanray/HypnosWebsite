@@ -4,7 +4,6 @@ use ServerInformationAPI::run;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("Hello, world!");
     run().await?;
     Ok(())
 }

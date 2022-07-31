@@ -1,3 +1,4 @@
 node_modules
 dist
 /ServerInformationAPI/target
+/ServerInformationAPI/src/config.json
