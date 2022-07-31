@@ -8,7 +8,7 @@ const MemberCard = (props: { m: Member}) => {
     // add gif support
     const a = `"${props.m.avatar}"`;
     return (<div class="p-3">
-        <img class="m-auto w-16 rounded-full" src={props.m.avatar} alt="test" />
+        <img class="m-auto w-24 rounded-full" src={props.m.avatar} alt="test" />
         <p class="text-center text-slate-200">{props.m.name}</p>
     </div>);
 };
