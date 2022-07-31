@@ -16,7 +16,8 @@ lazy_static = "1.4.0"
 anyhow = "1.0.58"
 mc-server-ping = { git = "https://github.com/notseanray/mc-server-ping.git" }
 actix-web = "4.0.1"
+actix-cors = "0.6.1"
 
 [profile.release]
 panic = "abort"
-strip = "true"
+strip = "symbols"

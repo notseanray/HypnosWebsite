@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 mod config;
+use actix_cors::Cors;
 use actix_web::{
     get,
     http::{header::ContentType, StatusCode},
@@ -108,7 +109,7 @@ impl From<SerenityMember> for Member {
     #[inline]
     fn from(m: SerenityMember) -> Self {
         Self {
-            avatar: m.avatar_url().unwrap_or_else(||
+            avatar: m.user.static_avatar_url().unwrap_or_else(||
                 // troll face as default
                 "https://media.discordapp.net/stickers/860204185818365962.webp?size=4096"
                 .to_owned()),
@@ -128,8 +129,7 @@ pub async fn run() -> Result<()> {
             // happens then reload the config and continue
             while let Ok(notify::DebouncedEvent::Write(_)) = rx.recv() {}
             if let Ok(v) = Config::load() {
-                println!("reloaded");
-                println!("{:?}", v);
+                println!("reloaded config");
                 // pretty much the only use of anyhow right here, if Box<dyn Error> was Send then I
                 // wouldn't use the library
                 *CONFIG.write().await = v;
@@ -171,7 +171,11 @@ pub async fn run() -> Result<()> {
 
     println!("started webserver on 0.0.0.0:{port}");
     HttpServer::new(|| {
+        // ideally this shoult not be super permissive, but for this
+        // simple rest API I am not very worried
+        let cors = Cors::permissive();
         App::new()
+            .wrap(cors)
             .service(server_status)
             .service(discord_members)
             .service(image_request)
