@@ -1,8 +1,8 @@
-import { createResource, For } from "solid-js";
+import { createResource, For, Show } from "solid-js";
 import downaccel from "../assets/hypnos/downaccel.png";
 import { Server } from "../types";
 
-const STATUS_ENDPOINT = "http://129.213.54.82:9000/server_status";
+const STATUS_ENDPOINT = "https://api.hypnos.ws/server_status";
 
 const ServerCard = (props: { s: Server }) => {
     const status = props.s.online ? (<p class="text-green-500">online</p>): <p class="text-red-600">offline</p>;
@@ -41,13 +41,24 @@ const Status = () => {
 		}} 
 		class="min-h-screen h-full"
 	>
-        <div>
+        <header>
             <div class="pt-32 grid place-items-center">
+                <Show when={server.loading}>
+                    <div class="flex text-center justify-center">
+                    <div class="flex items-center justify-center">
+                        <div
+                        class="spinner-border animate-spin inline-block w-4 h-4 border-4 rounded"
+                        role="status"
+                        ></div>
+                    </div>
+                    <div class="pl-2 text-slate-400">loading status data...</div>
+                    </div>
+                </Show>
                 <For each={server()}>
                     {(s: Server) => <ServerCard s={s} />}
                 </For>
             </div>
-        </div>
+        </header>
 	</div>
     );
 }

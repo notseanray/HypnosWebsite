@@ -28,8 +28,8 @@ const Navbar = () => {
 		</NavLink>
 	);
 	return (
-		<nav class="absolute w-full flex items-center font-bold text-lg font-thin text-slate-200 space-x-8 uppercase bg-slate-800/[0.3]">
-			<img src={logo} class="ml-10 rounded-lg h-12 m-2" alt="logo" />
+		<nav class="w-screen absolute text-[1vw] flex items-center font-bold text-md font-thin text-slate-200 space-x-8 uppercase bg-slate-800/[0.3]">
+			<img src={logo} class="ml-[2vw] rounded-lg h-16 m-[1vw]" alt="logo" />
 			{Home}
 			{About}
 			{Status}

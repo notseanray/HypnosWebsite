@@ -7,11 +7,12 @@ const Home = () => {
 		"background-size": "cover", 
 		"background-position": "center"
 		}} 
-		class="grid h-screen min-h-screen place-items-center"
+		class="content grid place-items-center h-screen min-h-screen"
 	>
-		<div class="mb-2" />
-		<img class="h-48" src={banner} decoding="async" alt="" />
-		<iframe src="https://discord.com/widget?id=626974236753264664&theme=dark" width="350" height="500" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>	
+		<header>
+			<img class="w-5/12" src={banner} decoding="async" alt="" />
+			<iframe src="https://discord.com/widget?id=626974236753264664&theme=dark" width="350px" height="400px" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>	
+		</header>
 	</div>);
 }
 

@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-button:single-button {
+  height: 0px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(82, 82, 90);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(23, 27, 29);
+}
+
+header {
+  display: contents;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  margin: auto;
+}
+
+
+@keyframes fade {
+  from {
+    transform: translateY(60px);
+    opacity: 0;
+    overflow-y: hidden;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@for $i from 1 through 11 {
+    header > :nth-child(#{$i}) {
+      animation-name: fade;
+      animation-duration: 550ms;
+    }
+}

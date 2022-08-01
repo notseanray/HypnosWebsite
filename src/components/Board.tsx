@@ -1,6 +1,6 @@
-import { createResource, For } from "solid-js";
+import { createResource, For, Show } from "solid-js";
 
-const IMAGE_ENDPOINT = "http://129.213.54.82:9000/image_request";
+const IMAGE_ENDPOINT = "https://api.hypnos.ws/image_request";
 
 const ImageCard = (props: { url: string }) => {
   console.log(props.url);
@@ -43,11 +43,26 @@ const Board = () => {
       class="min-h-screen"
     >
       <p class="p-24 text-center text-2xl text-slate-200"></p>
-      <div class="flex text-center justify-center">
-        <div class="flex flex-wrap text-center justify0-center w-11/12">
-          <For each={image_data()}>{(d: string) => <ImageCard url={d} />}</For>
+      <header>
+        <div class="flex text-center justify-center">
+          <div class="flex flex-wrap text-center justify0-center w-11/12">
+            <Show when={image_data.loading}>
+              <div class="flex text-center justify-center">
+                <div class="flex items-center justify-center">
+                  <div
+                    class="spinner-border animate-spin inline-block w-4 h-4 border-4 rounded"
+                    role="status"
+                  ></div>
+                </div>
+                <div class="pl-2 text-slate-400">loading images...</div>
+              </div>
+            </Show>
+            <For each={image_data()}>
+              {(d: string) => <ImageCard url={d} />}
+            </For>
+          </div>
         </div>
-      </div>
+      </header>
     </div>
   );
 };
