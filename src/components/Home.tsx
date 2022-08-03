@@ -10,7 +10,7 @@ const Home = () => {
 		class="content grid place-items-center h-screen min-h-screen"
 	>
 		<header>
-			<img class="w-5/12" src={banner} decoding="async" alt="" />
+			<img class="pt-48 w-5/12" src={banner} decoding="async" alt="" />
 			<iframe src="https://discord.com/widget?id=626974236753264664&theme=dark" width="350px" height="400px" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>	
 		</header>
 	</div>);

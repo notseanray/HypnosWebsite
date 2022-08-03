@@ -18,7 +18,8 @@ const MemberCard = (props: { m: Member }) => {
 const members = async () =>
   await fetch(MEMBER_ENDPOINT)
     .then((res) => res.json())
-    .then((res) => res as Array<Member>);
+    .then((res) => res as Array<Member>)
+    .catch((_) => []);
 
 const About = () => {
   const [data] = createResource(members);
@@ -32,7 +33,7 @@ const About = () => {
       class="grid h-full min-h-screen"
     >
       <header>
-        <p class="mb-7 mt-36 text-center text-slate-300 font-light mx-36">
+        <p class="mb-7 mt-36 text-center text-slate-300 font-light mx-12">
           We are a Minecraft technical server running 1.12.2 that started in
           October 2019. Our goal, like any other tech server, is to make farms
           for just about everything and make them as best we can. We both dig
@@ -41,7 +42,7 @@ const About = () => {
           be offered a chance of membership if you show interest.
         </p>
         <div class="flex text-center justify-center">
-          <div class="flex flex-wrap text-center justify-center w-8/12">
+          <div class="flex flex-wrap text-center justify-center w-9/12">
             <Show when={data.loading}>
               <div class="flex text-center justify-center">
                 <div class="flex items-center justify-center">

@@ -29,7 +29,8 @@ const ServerCard = (props: { s: Server }) => {
 const servers = async () => 
     await fetch(STATUS_ENDPOINT)
         .then((res) => res.json())
-        .then((res) => res as Array<Server>);
+        .then((res) => res as Array<Server>)
+        .catch((_) => []);
 
 const Status = () => {
     const [server] = createResource(servers);

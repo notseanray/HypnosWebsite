@@ -3,7 +3,6 @@ import { createResource, For, Show } from "solid-js";
 const IMAGE_ENDPOINT = "https://api.hypnos.ws/image_request";
 
 const ImageCard = (props: { url: string }) => {
-  console.log(props.url);
   const u = props.url.toLocaleLowerCase();
   const img =
     u.includes(".png") ||
@@ -31,7 +30,8 @@ const ImageCard = (props: { url: string }) => {
 const images = async () =>
   await fetch(IMAGE_ENDPOINT)
     .then((res) => res.json())
-    .then((res) => res as Array<string>);
+    .then((res) => res as Array<string>)
+    .catch((_) => []);
 
 const Board = () => {
   const [image_data] = createResource(images);
