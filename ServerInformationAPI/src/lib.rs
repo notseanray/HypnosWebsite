@@ -47,7 +47,7 @@ pub(crate) struct Member {
 #[get("/server_status")]
 async fn server_status(_: HttpRequest) -> actix_web::Result<HttpResponse> {
     Ok(HttpResponse::build(StatusCode::OK)
-        .content_type(ContentType::plaintext())
+        .content_type(ContentType::json())
         .body(serde_json::to_string(&*SERVERS.read().await).unwrap_or_default()))
 }
 

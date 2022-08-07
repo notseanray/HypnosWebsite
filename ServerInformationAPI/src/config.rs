@@ -35,11 +35,17 @@ impl Server {
             Ok(v) => v,
             _ => return Ok(Self::offline(server)),
         };
+        let mut player_online = 0;
+        let mut player_max = 0;
+        if let Some(v) = response.players {
+            player_online = v.online;
+            player_max = v.max;
+        }
         Ok(Self {
             display_name: server.display_name.to_owned(),
             online: true,
-            player_online: response.players.online,
-            player_max: response.players.max,
+            player_online,
+            player_max,
         })
     }
 
