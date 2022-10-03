@@ -21,8 +21,7 @@ const App: Component = () => {
             <Route path="/status" element={<Status />} />
             <Route path="/map" element={<Map />} />
             <Route path="/board" element={<Board />} />
-            <Route path="/404" element={<Page404 />} />
-            <Route path="/*" element={<Home />} />
+            <Route path="/*" element={<Page404 />} />
           </Routes>
       </Router>
     </div>
